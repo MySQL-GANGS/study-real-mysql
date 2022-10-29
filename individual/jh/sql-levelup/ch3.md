@@ -34,12 +34,6 @@
 - 결합을 하는 경우가 성능적으로 이슈가 있을수도...
 - CASE 문이 UNION, OR, IN 과 결과가 다를 수 있는 이유
 
-## TODO
+## etc /
 
-- p.391
-- ***초보자? SUBQUERY랑 그런거
-- 주혁 숙제 : Pilot 프로젝트
-	- QueryDSL == JPA 로 추상화 다음에는 QueryDSL 로 작성해서 가져오기
-- 답정너
-- HashAggregate
-- MAX\(str) 쓰면 추가적인 정렬을 한다.
+- TODO / 다음부터는 적극적인 예제 경험 *** 주혁 숙제 : 프로젝트 QueryDSL == JPA 로 추상화 다음에는 QueryDSL 로 작성해서 가져오기
