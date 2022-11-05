@@ -47,3 +47,32 @@ MySql에서 사용되는 잠금은 스토리지 레벨의 잠금과 MySQL 엔진
     변경해야 할 레코드를 찾기 위해 검색한 인덱스에 모두 락을 건다. 테이블에 인덱스가 없는 경우 테이블을 풀 스캔하면서 업데이트 해 전체 레코드를 잠그게 된다. 적절한 인덱스 없이 업데이트를 수행하면 동시성이 떨어진다.
 
 # Isolation Levels
+
+1. READ UNCOMMITTED
+
+    한 트렌젝션에서 commit하지 않은 내용을 다른 트렌젝션에서 볼 수 있는 dirty read가 허용되는 격리 수준이다. 데이터 정합성에 문제가 많아 잘 사용되지 않는다.
+
+1. READ COMMITED
+
+    commit이 완료된 내용만 다른 트렌젝션에서 조회 가능하다. 한 트렌젝션에서 같은 내용을 다시 읽었을 때 그 사이 다른 트랜젝션에서 데이터가 변경된 경우 같은 결과를 얻지 못하는 NOON-REPPEATABLE READ 부정합 문제가 있다. 오라클 DBMS의 default 격리 수준이다.
+
+1. REPEATABLE READ
+
+    InnoDB의 트랜젝션내에서 보여지는 데이터는 트랜젝션에서 처음으로 테이블을 읽었을때의 snapshop으로 일관되게 유지된다. 트랜젝션이 테이블을 처음으로 읽을 때 그 시점을 기록하고, 해당 시점 이후에 변경된 데이터는 보이지 않는다. 다만 이 snapshot은 SELECT 문에만 적용된다. DELETE나 UPDATE문은 다른 트랜젝션에서 변경된 내용에 영향을 끼친다.
+    ```
+    SELECT COUNT(c1) FROM t1 WHERE c1 = 'xyz';
+    -- Returns 0: no rows match.
+    DELETE FROM t1 WHERE c1 = 'xyz';
+    -- Deletes several rows recently committed by other transaction.
+
+    SELECT COUNT(c2) FROM t1 WHERE c2 = 'abc';
+    -- Returns 0: no rows match.
+    UPDATE t1 SET c2 = 'cba' WHERE c2 = 'abc';
+    -- Affects 10 rows: another txn just committed 10 rows with 'abc' values.
+    SELECT COUNT(c2) FROM t1 WHERE c2 = 'cba';
+    -- Returns 10: this txn can now see the rows it just updated.
+    ```
+
+1. SERIALIZABLE
+
+    읽기 작업도 테이블에 잠금을 걸게된다. PHANTOM READ 문제가 발생하지 않지만 그만큼 동시성이 떨어진다.
