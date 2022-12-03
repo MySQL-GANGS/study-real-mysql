@@ -5,11 +5,18 @@
 
 ssd는 hdd에 비해 random I/O에서 압도적인 성능을 보인다. sequential I/O에서는 hdd가 조금 더 느리지만, 스케일이 같기에 비용을 고려하면 좋은 선택이 될 수 있다. 흥미로운 점은 ssd의 random writes 성능이 randrom reads 보다 빠르다는 것이다. ssd의 page 상태가 invalid라면 erase 후 program 작업을 수행해야한다. ssd의 작업 비용은 erase, program, read순으로 높다. 그럼에도 random writes가 높은 성능을 보이는 것은 log-structured FTL을 사용하기 때문이다. 여러 주소의 쓰기 작업도 순차적으로 같은 블록에 쓰기작업으로 진행된다.
 
+## Index scan
+
+- range scan
+- full scan
+- loose index scan
+- skip scan
+
 ## InnoDB index
 
 InnoDB Index는 B-Tree를 사용하고 페이지의 기본 크기는 16KB이다. 인덱스의 추가와 변경의 용이를 위해 데이터가 추가될 때 인덱스 페이지의 1/16은 비어있도록 한다.
 
-### clustered index
+### Clustered index
 
 InnoDB는 프라이머리키를 클러스터드 인덱스로 사용한다. 클러스터드 인덱스란 리프 노드에 실제 데이터가 저장되어있어 데이터가 프라이머리 키에 의해 클러스터링 되어 저장된다는 의미이다. 프라이머리 키의 변경은 실제 물리데이터를 옮겨야 한다. 프라이머리 키가 없는 경우 NOT NULL 옵션의 유니크 인덱스를 사용하거나 자동으로 유니크한 값을 가지는 컬럼을 내부적으로 추가해 클러스터링 키로 선택한다. 검색조건에 자주 사용되는 의미있는 값을 프라이머리 키로 사용해야 클러스터드 인덱스의 장점을 살릴 수 있다.
 
@@ -27,4 +34,3 @@ InnoDB는 프라이머리키를 클러스터드 인덱스로 사용한다. 클�
 - 프라이머리키는 되도록 업무적인 컬럼으로 생성
 - 프라이머리키는 반드시 명시 -> 자동으로 생성된 클러스터드 인덱스는 접근 불가
 - 프라이머리 키가 길고 세컨더리 인덱스가 많이 필요하거나, 조회보다 데이터 추가 위주의 테이블은 AUTO_INCREMENT사용 고려
-s
