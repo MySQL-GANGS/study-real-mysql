@@ -62,4 +62,81 @@ temporary table | Using temporary | 인덱스를 전혀 사용하지 못해 테�
 **집계함수가 사용되지 않은 경오 특정 컬럼에만 DISTINCT를 사용할 수 없고 조회된 컬럼의 유니크한 조합을 가져온다. `SELECT DISTINCT(col1), col2 FROM table`은 `SELECT DISTINCT col1, col2 FROM table`과 같다.**
 집계함수가 있는 경우 경우 임시 테이블을 이용해 처리된다.  
 
-## Temporary Table
+# Query Hints
+## Index Hints
+**인덱스 힌트는 ANSI표준이 아닌 MySQL에서만 사용가능하므로 되도록이면 사용하지 말자.**
+
+**최적 실행 계획은 데이터의 성격에 따라 시시각각 변하므로 지금 인덱스를 사용하는게 좋은 계획이라도 나중에는 달라질 수 있다. 섣부른 최적화를 하지 말자**
+
+**가장 훌륭한 최적화는 힌트가 필요한 쿼리를 서비스에서 없애거나 튜닝할 필요가 없게 데이터를 최소화 하거나 데이터 모델의 단순화로 힌트가 필요하지 않게 하는 것이다.** 
+### STRAIGHT_JOIN
+쿼리의 조인 순서를 `FROM`절에 사용된 순서대로 설정한다. 
+
+*필요한 상황*
+- 임시테이블과 일반 테이블의 조인
+    
+    옵티마이저가 적절한 조인 순서를 선택하므로 성능 저하가 있는 경우에만 사용한다. 일반적으로 임시 테이블을 드라이빙 테이블로 선정하는 것이 좋다. 조인 컬럼에 인덱스가 없는 경우에는 두 테이블 중 레코드 건수가 작은 쪽을 드라이빙 테이블로 선택하는 것이 좋다.
+
+- 임시 테이블끼리 조인
+
+    임시테이블은 항상 인덱스가 없기 때문에 크기가 작은 테이블을 드라이빙 테이블로 선택하는것이 좋다.
+
+- 일반 테이블끼리 조인
+
+    인덱스가 한쪽에만 있는 경우 인덱스가 없는 테이블을 드라이빙으로 이외의 경우에는 레코드 건수가 작은 쪽을 드라이빙 테이블로 선택하는 것이 좋다.
+
+### USE / FORCE / IGNORE INDEX
+
+*종류*
+- USE INDEX
+
+    특정 테이블의 인덱스를 사용하도록 권장한다. 대부분의 경우 옵티마이저는 사용자의 힌트를 채택하지만 사용을 보장하지는 않는다.
+
+- FORCE INDEX
+
+    USE INDEX와 동일한 기능을 하지만 옵티마이저에 미치는 영향이 더 강하다. 사용을 보장하지 않는것은 동일하다.
+
+- IGNORE INDEX
+
+    인덱스를 사용하지 못하도록 한다.
+
+*용도*
+- USE INDEX FOR JOIN
+- USE INDEX FOR ORDER BY
+- USE INDEX FOR GROUP BY
+
+### SQL_CALC_FOUND_ROWS vs COUNT(*)
+SQL_CALC_FOUND_ROWS힌트가 있는 경우 LIMIT에 명시된 만큼의 데이터를 찾아도 끝까지 검색을 수행한다. `SELECT FOUND_ROWS()`쿼리를 통해 전체 데이터 수를 알 수 있다. COUNT(*)는 커버링 인덱스 만으로 처리될 수 있는 반면 FOUND_ROWS는 모든 레코드를 읽어야한다. 페이징에 사용하지 말자.
+
+## Optimizer Hints
+
+### scope
+- 인덱스
+- 테이블
+- 쿼리블록
+- 글로벌
+
+### hints
+힌트|설명|영향 범위
+---|--|-------
+MAX_EXECUTION_TIME | 쿼리의 실행 시간 제한 | 글로벌
+RESOURCE_GROUP | 쿼리 실행의 리소스 그룹 설정 | 글로벌
+SET_VAR | 쿼리 실행을 위한 시스템 변수 제어 | 글로벌
+SUBQUERY | 서브쿼리의 세미 조인 최적화 전략 제어 | 쿼리 블룩
+BKA, NO_BKA | Batched Key Access 조인 사용 여부 제어 | 쿼리 블록, 테이블
+BNL, NO_BNL | Block Nasted Loop 조인 사용 여부 제어 |쿼리 블록, 테이블
+DERIVED_CONDITION_PUSHDOWN <br>NO_DERIVED_CONDITION_PUSHDOWN | 외부 쿼리의 조건을 서브쿼리로 옮기는 최적화 사용여부 제어 | 쿼리 블록, 테이블
+HASH_JOIN,<br>NO_HASH_JOIN | 해시조인 사용여부 제어 | 쿼리블록, 테이블
+JOIN_FIXED_ORDER | FROM 절에 명시된 테이블 순서대로 조인 | 쿼리블록
+JOIN_ORDER | 힌트에 명시된 순서대로 조인 | 쿼리블록
+JOIN_PREFIX | 힌트에 명시된 테이블을 드라이빙 테이블로 선택 | 쿼리블록
+JOIN_SUFFIX | 힌트에 명시된 테이블을 드리븐 테비을로 선택 | 쿼리블록
+QB_NAME | 쿼리블록의 이름을 설정
+SEMIJOIN,<br>NO_SEMIJOIN | 서브쿼리의 세미 조인 최적화 전략 제어<br>(DUPSWEEDOUT, FIRSTMATCH, LOOSESCAN, MATERIALIZATION) | 쿼리블록
+MERFE, NO_MERGE | FROM절의 서브쿼리나 뷰를 외부 쿼리 블록으로 병합하는 최적화 수행 여부 선택 | 테이블
+INDEX_MERGE, NO_INDEX_MERGE | 인덱스 병합 실행 계획 사용 여부 선택 | 테이블, 인덱스
+MRR, NO_MRR | Multi-Range Read 사용 여부 제어 | 테이블, 인덱스
+NO_ICP | index condition pushdown 사용 여부 제어 | 테이블, 인덱스
+NO_RANGE_OPTIMIZATION | 특정 인덱스를 사용하지 못하도록 하거나 풀테이블 스캔 방식으로 쿼리 처리 | 테이블, 인덱스
+SKIP_SCAN,<br> NO_SKIP_SCAN  | 인덱스 스킵 스캔 사용 여부 선택 | 테이블, 인덱스
+INDEX, NO_INDEX | GROUP BY, ORDER BY, WHERE 절의 처리를 위한 인덱스 사용 여부 제어 | 인덱스
